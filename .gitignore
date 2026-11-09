@@ -1,4 +1,5 @@
 .commandcode/
 
-#CVE-2025-64516
-linux/info_leak/CVE-2025-64516/PoC/__pycache__/
+# Python-generated files
+__pycache__/
+*.py[cod]
