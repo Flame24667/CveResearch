@@ -47,11 +47,12 @@ Daily note template (`daily/_TEMPLATE.md`):
 - CVE:
 - Platform: Android
 - Category: rce | reverse_shell | info_leak
-- Trigger: browser | file
+- Trigger: browser_page | file_handler
+- Trigger detail:
 - Outcome:
 - Folder: android/<category>/<CVE>/
 - Public PoC: yes | no
-- Status: pass | blocked | replaced
+- Status: blocked | fail | pass | replaced
 - Evidence:
 - Blockers:
 - Next:
@@ -214,11 +215,14 @@ Rules:
 
 ### `MATRIX.md`
 
-Minimum columns:
+Minimum columns. `Trigger` must be `browser_page` or `file_handler`, with a
+specific `Trigger detail` describing the tested interaction. Mark `pass` only
+after verifying the trigger and outcome with reproducible evidence; otherwise
+use `blocked` or `fail`.
 
-| Date | Platform | Category | CVE | Trigger | Public PoC? | Status | Folder | Notes |
-|---|---|---|---|---|---|---|---|---|
-| YYYY-MM-DD | Android | rce | CVE-YYYY-XXXXX | browser/file | yes/no | pass/fail/replaced | `android/rce/CVE-YYYY-XXXXX/` | |
+| Date | Platform | Category | CVE | Trigger | Trigger detail | Public PoC? | Status | Folder | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| YYYY-MM-DD | Android | rce | CVE-YYYY-XXXXX | browser_page/file_handler | Describe the tested trigger path | yes/no | blocked/fail/pass/replaced | `android/rce/CVE-YYYY-XXXXX/` | |
 
 ### Per-CVE `README.md`
 
@@ -279,6 +283,7 @@ The assignment is complete only when:
 
 - [ ] Valid, verified CVE from 2025–2026.
 - [ ] Browser or file trigger, explained and tested.
+- [ ] Trigger type is `browser_page` or `file_handler`, with a `Trigger detail` in the matrix.
 - [ ] Outcome is RCE / reverse shell / PII leak.
 - [ ] RCE: custom command option + `id` + unique marker demonstrated.
 - [ ] Reverse shell: callback to a lab listener, interactive.
@@ -336,7 +341,7 @@ Bonus:
 2. Collect the patch/diff and root cause.
 3. Create the day's CVE folder under the correct category.
 4. Build a lab with the pinned vulnerable version.
-5. Reproduce the trigger (browser/file) without an exploit.
+5. Reproduce the trigger (`browser_page` or `file_handler`) without an exploit.
 6. Build the PoC in stages; prove each primitive.
 7. Achieve the outcome (RCE/revshell/PII).
 8. Add command/callback customization and evidence.
@@ -363,4 +368,3 @@ Do not stop at “almost working”; do not fake the result either. The final st
 - **Do not mix** CVE research deliverables into the Angler branch `chore/retire-obsolete-cves`. That branch is for the Angler module and the SSHole CVE commit; the intern CVE research is a separate deliverable.
 - Commit messages must be clear: CVE ID, category, and exploit summary.
 - A demo is mandatory: the mentor runs `run.sh check` and `run.sh exploit` from a clean state.
-
