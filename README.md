@@ -390,4 +390,3 @@ Do not stop at “almost working”; do not fake the result either. The final st
 - **Do not mix** CVE research deliverables into the Angler branch `chore/retire-obsolete-cves`. That branch is for the Angler module and the SSHole CVE commit; the intern CVE research is a separate deliverable.
 - Commit messages must be clear: CVE ID, category, and exploit summary.
 - A demo is mandatory: the mentor runs `run.sh check` and `run.sh exploit` from a clean state.
-
