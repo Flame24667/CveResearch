@@ -9,7 +9,9 @@ Collect CVEs from **2025–2026** that satisfy all of the following:
    - **RCE** (remote code execution),
    - **reverse shell**, or
    - **information leak containing PII**.
-3. They can be triggered through a **browser** or a **file**.
+3. They can be triggered through one of these paths, and the trigger itself must reach one of the outcomes in item 2:
+   - **Browser page**: the PoC is a page (HTML/JS/WASM or a URL) opened in a pinned vulnerable browser, and that page triggers the target and produces the outcome.
+   - **File handler**: the PoC is a file (PDF, DOCX/XLSX, archive, media, image, or another format) opened by a pinned vulnerable application, and that file triggers the application and produces the outcome.
 4. They are **exploit-ready**: not theory, not crash-only, and not a placeholder.
 
 Final goal: one command to verify the target is vulnerable, one command to execute the exploit, auditable evidence, and a write-up that another engineer can reproduce.
@@ -48,11 +50,11 @@ Daily note template (`daily/_TEMPLATE.md`):
 - Platform: Android
 - Category: rce | reverse_shell | info_leak
 - Trigger: browser_page | file_handler
-- Trigger detail:
+- Trigger detail: browser page + browser version, or file + application/version
 - Outcome:
 - Folder: android/<category>/<CVE>/
 - Public PoC: yes | no
-- Status: blocked | fail | pass | replaced
+- Status: pass | blocked | replaced
 - Evidence:
 - Blockers:
 - Next:
@@ -69,9 +71,10 @@ Daily note template (`daily/_TEMPLATE.md`):
   - vulnerable and patched versions,
   - root cause,
   - patch/commit/diff if available,
-  - trigger path (browser or file),
+  - trigger path (browser page or file handler),
   - real impact.
 - The CVE must be demonstrable in the lab with the version you pinned.
+- The lab must run the real vulnerable product at the pinned version. A mock server that imitates the product is not a reproduction.
 - CVEs outside 2025–2026 are **rejected**.
 - Do not invent CVEs. If a CVE cannot be publicly verified, choose another one.
 
@@ -136,21 +139,36 @@ Do not submit a fake PoC, an “almost working” exploit, or a theoretical writ
 
 ---
 
-## 6. Trigger: browser or file
+## 6. Trigger: browser page or file handler
 
-### Browser
+The trigger is the mechanism that reaches the chosen outcome. A Python driver, a checker, or a raw HTTP request is **not** an accepted trigger by itself. The trigger must be exercised end-to-end in the lab.
 
-- The PoC is HTML/JS/WASM/URL executed in a pinned vulnerable browser.
-- Include browser version, OS, and required flags.
-- If you use a headless browser, explain how it differs from an interactive browser.
+### 6.1 Browser page trigger
 
-### File
+- The PoC must be a page opened in a browser: an HTML/JS/WASM page, a `data:` URL, or a URL that the victim opens. The page itself must send the requests or interact with the target and produce one of the outcomes in §5.
+- Pin the browser: include the browser name, exact version, OS, and any required flags or profile settings.
+- Demonstrate the full flow from the page: the page triggers the target, the target performs the outcome, and the browser shows or receives the result (command output, reverse-shell callback, or PII leak).
+- A Python exploit driver may be included for automation and evidence capture, but it does not replace the browser-page demonstration. Evidence must show the page producing the outcome.
+- If you use a headless browser, explain how it differs from an interactive browser and include the headless command and version.
+- Explain whether user interaction is required (page load, click, form submit) and what happens after the trigger.
 
-- The PoC is a file opened by a vulnerable application (PDF, DOCX, archive, media, or another format).
-- Include the application/version that opens the file and the steps to open it.
-- Do not rely on Office macros on a real machine; use a pinned lab application.
+### 6.2 File handler trigger
 
-For both paths, explain whether user interaction is required and what happens after the trigger.
+- The PoC must be a file opened by a pinned vulnerable application: PDF, DOCX/XLSX, archive, media, image, or another file-handler format. Uploading a file to a web form is **not** a file-handler trigger by itself.
+- Include the application name and exact version, the OS, the file, and the steps to open or preview it.
+- The file itself must trigger the vulnerable application and produce one of the outcomes in §5. The outcome must happen in the vulnerable application, not on the controller machine.
+- Do not rely on Office macros on a real machine; use a pinned lab application and a synthetic file.
+- Explain whether user interaction is required (open, preview, extract, play) and what happens after the trigger.
+- Evidence must show the file being opened by the vulnerable application and the outcome (command output, callback, or PII).
+
+### 6.3 Common requirements
+
+- The trigger path must be the same path used by `run.sh check` and `run.sh exploit`.
+- `check` must prove the trigger is reachable without executing the destructive outcome.
+- `exploit` must execute through the trigger, not through a separate shortcut.
+- A page that only displays a proof file written by another script is not a browser trigger.
+- A file that is only read or parsed by a script, and never opened by the vulnerable application, is not a file-handler trigger.
+- Screenshots or logs without the trigger flow are not sufficient evidence.
 
 ---
 
@@ -215,14 +233,11 @@ Rules:
 
 ### `MATRIX.md`
 
-Minimum columns. `Trigger` must be `browser_page` or `file_handler`, with a
-specific `Trigger detail` describing the tested interaction. Mark `pass` only
-after verifying the trigger and outcome with reproducible evidence; otherwise
-use `blocked` or `fail`.
+Minimum columns:
 
-| Date | Platform | Category | CVE | Trigger | Trigger detail | Public PoC? | Status | Folder | Notes |
-|---|---|---|---|---|---|---|---|---|---|
-| YYYY-MM-DD | Android | rce | CVE-YYYY-XXXXX | browser_page/file_handler | Describe the tested trigger path | yes/no | blocked/fail/pass/replaced | `android/rce/CVE-YYYY-XXXXX/` | |
+| Date | Platform | Category | CVE | Trigger | Public PoC? | Status | Folder | Notes |
+|---|---|---|---|---|---|---|---|---|
+| YYYY-MM-DD | Android | rce | CVE-YYYY-XXXXX | browser_page/file_handler | yes/no | pass/fail/replaced | `android/rce/CVE-YYYY-XXXXX/` | |
 
 ### Per-CVE `README.md`
 
@@ -264,8 +279,10 @@ The assignment is complete only when:
 
 - The CVE is in 2025–2026 and verified.
 - The target runs from a clean lab with the pinned vulnerable version.
-- `run.sh check` proves the target is vulnerable.
-- `run.sh exploit` achieves the chosen outcome.
+- The trigger is a browser page opened in a pinned browser, or a file opened by a pinned vulnerable application.
+- The trigger itself produces the outcome; a Python driver, checker, or raw HTTP request alone does not count.
+- `run.sh check` proves the target is vulnerable through the declared trigger.
+- `run.sh exploit` achieves the chosen outcome through the declared trigger.
 - RCE: the custom command runs on the target, not on the controller.
 - Reverse shell: the listener receives a shell and a custom command runs.
 - PII: synthetic sensitive data is visible and its impact is explained.
@@ -282,8 +299,9 @@ The assignment is complete only when:
 ## 10. Acceptance checklist
 
 - [ ] Valid, verified CVE from 2025–2026.
-- [ ] Browser or file trigger, explained and tested.
-- [ ] Trigger type is `browser_page` or `file_handler`, with a `Trigger detail` in the matrix.
+- [ ] Browser-page trigger: page opened in a pinned browser with version/OS/flags.
+- [ ] File-handler trigger: file opened by a pinned vulnerable application with version/OS/steps.
+- [ ] The trigger itself produces the outcome; a Python driver/checker is not the trigger.
 - [ ] Outcome is RCE / reverse shell / PII leak.
 - [ ] RCE: custom command option + `id` + unique marker demonstrated.
 - [ ] Reverse shell: callback to a lab listener, interactive.
@@ -330,6 +348,10 @@ Bonus:
 - Real PII or public/third-party targets.
 - Persistence, worming, lateral movement, or real data exfiltration.
 - Fake PoCs, “almost working” exploits, screenshots without a reproducer, or copying a public exploit without understanding it.
+- A mock or simulated target that does not run the pinned vulnerable product.
+- A “browser trigger” that is only a Python script or raw HTTP requests, with no page opened in a browser.
+- A “file trigger” that is only an upload or HTTP request, with no file opened by a vulnerable application.
+- Trigger evidence that does not show the browser page or file handler producing the outcome.
 - More than one CVE submitted for a single day (a chain counts as one), or a day with no daily note.
 - Mixing CVE research deliverables into the production Angler branch.
 
@@ -341,7 +363,7 @@ Bonus:
 2. Collect the patch/diff and root cause.
 3. Create the day's CVE folder under the correct category.
 4. Build a lab with the pinned vulnerable version.
-5. Reproduce the trigger (`browser_page` or `file_handler`) without an exploit.
+5. Reproduce the trigger (browser page or file handler)
 6. Build the PoC in stages; prove each primitive.
 7. Achieve the outcome (RCE/revshell/PII).
 8. Add command/callback customization and evidence.
