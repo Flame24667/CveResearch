@@ -1,4 +1,5 @@
 .commandcode/
+REKAP_*.txt
 
 # Python-generated files
 __pycache__/
